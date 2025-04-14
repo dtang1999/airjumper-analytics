@@ -35,3 +35,16 @@ services:
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432"
+  
+
+  consumer:
+    build: .
+    container_name: kafka-consumer
+    depends_on:
+      - db
+      - kafka
+    command: python -m consumer.kafka_consumer
+    environment:
+      - DB_URI=dbname=airjumper user=postgres password=secret host=db port=5432
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_TOPIC=airjumper-analytics

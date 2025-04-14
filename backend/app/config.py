@@ -1,11 +1,11 @@
 # config.py
 # Central configuration file for Kafka, database, and other environment-level variables.
 
-# Kafka broker address
-KAFKA_BROKER = "kafka:9092"
+import os
 
-# Kafka topic for game analytics
-KAFKA_TOPIC = "airjumper-analytics"
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:9092")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "airjumper-analytics")
 
-# PostgreSQL database connection URI
-DB_URI = "dbname=airjumper user=postgres password=secret host=localhost port=5432"
+DB_URI = os.getenv(
+    "DB_URI", "dbname=airjumper user=postgres password=secret host=localhost port=5432"
+)
