@@ -1,5 +1,3 @@
-# consumer/kafka_consumer.py
-
 from confluent_kafka import Consumer
 import psycopg2
 import json
@@ -7,18 +5,20 @@ import time
 from app.config import *
 
 
+# Attempt to connect to PostgreSQL with retry logic
 def connect_db_with_retry():
     for i in range(10):
         try:
             conn = psycopg2.connect(DB_URI)
-            print("数据库连接成功")
+            print("Database connection successful.")
             return conn
         except Exception as e:
-            print(f"第 {i+1}/10 次连接数据库失败：{e}")
+            print(f"Attempt {i+1}/10 - Failed to connect to database: {e}")
             time.sleep(3)
-    raise Exception("数据库连接失败，退出")
+    raise Exception("Database connection failed after multiple attempts.")
 
 
+# Configure and start Kafka consumer
 consumer = Consumer(
     {
         "bootstrap.servers": KAFKA_BROKER,
@@ -29,9 +29,11 @@ consumer = Consumer(
 
 consumer.subscribe([KAFKA_TOPIC])
 
+# Connect to the database and create cursor
 conn = connect_db_with_retry()
 cur = conn.cursor()
 
+# Create the analytics table if it doesn't exist
 cur.execute(
     """
     CREATE TABLE IF NOT EXISTS airjumper_analytics (
@@ -51,9 +53,9 @@ cur.execute(
 """
 )
 conn.commit()
+print("Kafka consumer connected to the database and ensured table exists.")
 
-print("Kafka Consumer 已连接数据库并确保表存在")
-
+# Continuously consume and process messages
 while True:
     msg = consumer.poll(1.0)
     if msg is None:
@@ -62,7 +64,7 @@ while True:
     try:
         value = msg.value()
         if not value:
-            print("收到空消息，跳过")
+            print("Empty message received. Skipping.")
             continue
 
         data = json.loads(value)
@@ -90,10 +92,10 @@ while True:
             ),
         )
         conn.commit()
-        print("数据已插入数据库")
+        print("Data inserted into database.")
 
     except json.JSONDecodeError as e:
-        print(f"JSON 解码失败：{e}")
-        print(f"原始消息内容：{value}")
+        print(f"JSON decoding error: {e}")
+        print(f"Raw message: {value}")
     except Exception as e:
-        print(f"消费或写入数据库出错：{e}")
+        print(f"Error during message processing or database insertion: {e}")
